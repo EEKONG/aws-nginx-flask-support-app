@@ -1,0 +1,24 @@
+venv/
+.venv/
+__pycache__/
+*.pyc
+
+# Local environment and secrets
+.env
+.env.*
+*.pem
+*.key
+*.crt
+
+# Logs and exported operational data
+*.log
+cloudwatch_logs/
+cloudwatch_access_logs.csv
+cloudwatch_error_logs.csv
+*.csv
+
+# Local tooling and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
