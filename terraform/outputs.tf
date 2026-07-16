@@ -8,9 +8,19 @@ output "elastic_ip" {
   value       = aws_eip.web_eip.public_ip
 }
 
+output "public_dns" {
+  description = "Public DNS name for the Elastic IP"
+  value       = aws_eip.web_eip.public_dns
+}
+
+output "application_url" {
+  description = "Primary HTTP URL for the application"
+  value       = "http://${aws_eip.web_eip.public_ip}"
+}
+
 output "ssh_command" {
-  description = "SSH command to connect to the instance"
-  value       = "ssh -i tsekeypair.pem ec2-user@${aws_eip.web_eip.public_ip}"
+  description = "Example SSH command using a placeholder private key path"
+  value       = "ssh -i <path-to-private-key> ec2-user@${aws_eip.web_eip.public_ip}"
 }
 
 output "website_http_url" {

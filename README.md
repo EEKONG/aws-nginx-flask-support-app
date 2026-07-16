@@ -94,6 +94,8 @@ Production deployment using:
 - HTTPS
 - Let's Encrypt
 
+Terraform usage is documented in [terraform/README.md](terraform/README.md).
+
 ---
 
 ## Monitoring
