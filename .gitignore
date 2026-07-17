@@ -6,6 +6,7 @@ __pycache__/
 # Local environment and secrets
 .env
 .env.*
+!.env.example
 *.pem
 *.key
 *.crt
@@ -22,6 +23,7 @@ cloudwatch_error_logs.csv
 *.tfstate
 *.tfstate.*
 *.tfvars
+!terraform.tfvars.example
 *.tfplan
 *.tfplan.*
 
