@@ -19,8 +19,8 @@ output "application_url" {
 }
 
 output "ssh_command" {
-  description = "Example SSH command using a placeholder private key path"
-  value       = "ssh -i <path-to-private-key> ec2-user@${aws_eip.web_eip.public_ip}"
+  description = "SSH command to connect to the instance"
+  value       = "ssh -i xxxxxxxxx.pem ec2-user@${aws_eip.web_eip.public_ip}"
 }
 
 output "website_http_url" {
