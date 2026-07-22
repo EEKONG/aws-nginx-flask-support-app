@@ -26,6 +26,8 @@ The Terraform-managed environment is operational and publicly available at:
 * Configured SNS alarm and recovery notifications
 * Validated DNS, HTTPS, NGINX, Flask, SSM, and CloudWatch functionality
 * Confirmed that Terraform reports no configuration drift
+* Added a Terraform-managed, least-privilege CloudWatch Logs reader policy for the AI Log Analyzer
+* Decommissioned the original manually created EC2 environment and its legacy AWS resources
 
 ### Planned Improvements
 
@@ -47,6 +49,8 @@ The Terraform-managed environment is operational and publicly available at:
 | DNS migration              | Complete | Root and `www` domains point to the Terraform-managed server     |
 | TLS validation             | Complete | HTTPS requests return successful responses                       |
 | Monitoring                 | Complete | NGINX logs, CloudWatch alarms, and SNS notifications operational |
+| AI log access              | Complete | Least-privilege CloudWatch Logs read access managed by Terraform |
+| Legacy decommissioning     | Complete | Original EC2 environment and obsolete resources removed safely   |
 | CloudWatch Agent bootstrap | Planned  | Agent configuration is currently inherited from the AMI          |
 | Terraform-managed DNS      | Planned  | DNS records are currently managed through the DNS provider       |
 | CI/CD validation           | Planned  | Terraform checks are currently run manually                      |
@@ -62,6 +66,7 @@ Terraform provisions and manages:
 * An EC2 IAM role and instance profile
 * AWS Systems Manager Session Manager access
 * Amazon CloudWatch Agent permissions
+* Least-privilege CloudWatch Logs read permissions for the AI Log Analyzer
 * NGINX access and error log groups
 * CPU and EC2 status-check alarms
 * An SNS topic for monitoring notifications
@@ -104,9 +109,11 @@ flowchart TD
         IAM[EC2 IAM Role<br/>and Instance Profile]
         SSMPolicy[AmazonSSMManagedInstanceCore]
         CWPolicy[CloudWatchAgentServerPolicy]
+        LogReader[Terraform-Managed Inline Policy<br/>Read Access to NGINX Log Groups]
 
         SSMPolicy --> IAM
         CWPolicy --> IAM
+        LogReader --> IAM
         IAM --> EC2
     end
 
@@ -173,6 +180,8 @@ The role includes the following AWS-managed policies:
 
 * `AmazonSSMManagedInstanceCore`
 * `CloudWatchAgentServerPolicy`
+
+Terraform also manages an inline least-privilege policy that allows the EC2-hosted AI Log Analyzer to discover CloudWatch log groups and read events only from the NGINX access and error log groups.
 
 The IAM role is attached to the instance through an instance profile.
 
@@ -371,6 +380,8 @@ You can also connect through the AWS Console:
 ### CloudWatch Agent
 
 The EC2 IAM role includes `CloudWatchAgentServerPolicy`, allowing the CloudWatch Agent to publish logs and custom metrics.
+
+The same role also includes a Terraform-managed inline policy that grants the AI Log Analyzer read access to the NGINX CloudWatch log groups without using the broader legacy `Resource: "*"` log-reader policy.
 
 The current AMI already contains the CloudWatch Agent and its configuration.
 
@@ -613,7 +624,7 @@ Confirm that the IAM role includes `CloudWatchAgentServerPolicy`.
 
 ## Validation Results
 
-Validated on July 21, 2026.
+Validated on July 22, 2026.
 
 ### Infrastructure
 
@@ -621,7 +632,8 @@ Validated on July 21, 2026.
 * Terraform formatting checks passed.
 * Terraform successfully managed the EC2 instance and Elastic IP.
 * Terraform output changes were applied without replacing infrastructure.
-* `terraform plan` reported no configuration drift.
+* The CloudWatch Logs reader policy was added without replacing the EC2 instance or IAM role.
+* `terraform plan` reported no configuration drift after legacy resource cleanup.
 
 ### Secure Administrative Access
 
@@ -656,14 +668,28 @@ Validated on July 21, 2026.
 * A controlled CPU test changed the alarm from `OK` to `ALARM` and back to `OK`.
 * Alarm and recovery emails were delivered.
 * CloudWatch recorded the complete `INSUFFICIENT_DATA → OK → ALARM → OK` state history.
+* The active EC2 role successfully read events from both NGINX CloudWatch log groups.
 
-## Legacy Resources
+## Decommissioned Legacy Resources
 
-The older `tse-*` CloudWatch alarms and `Default_CloudWatch_Alarms_Topic` were created outside this Terraform configuration.
+The original manually created environment was decommissioned after the Terraform-managed replacement was fully validated.
 
-They remain associated with the original manually created environment and are not managed or deleted by this project.
+The following legacy resources were removed:
 
-They should be reviewed separately during decommissioning.
+* Original EC2 instance
+* Original EC2 root EBS volume
+* Legacy `tse-*` CloudWatch alarms
+* `Default_CloudWatch_Alarms_Topic`
+* Legacy IAM role and instance profile
+* Legacy `launch-wizard-1` security group
+
+Before termination, the original server was preserved as the reusable `cloud-support-platform-v1` AMI used to launch the Terraform-managed EC2 instance.
+
+The custom AMI and its associated snapshot remain available for recovery and reproducible instance creation.
+
+The AI Log Analyzer permissions previously attached to the legacy IAM role were recreated as a least-privilege Terraform-managed inline policy on the active EC2 role.
+
+The live application remained available throughout the cleanup. Both public HTTPS endpoints returned `200 OK`, and the final Terraform plan reported no configuration drift.
 
 ## Known Limitations
 
@@ -693,11 +719,8 @@ Because the NGINX log groups are managed by Terraform, `terraform destroy` will 
 
 Export any logs that must be retained before destroying the environment.
 
-The following resources are outside this Terraform state and require separate review:
+The following resource remains outside this Terraform state and requires separate review:
 
-* The original EC2 instance
-* Legacy `tse-*` alarms
-* `Default_CloudWatch_Alarms_Topic`
 * DNS records managed through the external DNS provider
 
 Do not run `terraform destroy` against infrastructure that is still required.
