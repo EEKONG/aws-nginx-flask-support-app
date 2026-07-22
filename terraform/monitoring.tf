@@ -4,6 +4,42 @@ resource "aws_iam_role_policy_attachment" "cloudwatch_agent" {
   policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
 }
 
+# Allows the EC2-hosted AI Log Analyzer to read only the NGINX log groups.
+resource "aws_iam_role_policy" "cloudwatch_logs_reader" {
+  name = "${var.project_name}-cloudwatch-logs-reader"
+  role = aws_iam_role.ec2_ssm_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+
+    Statement = [
+      {
+        Sid      = "DescribeCloudWatchLogGroups"
+        Effect   = "Allow"
+        Action   = "logs:DescribeLogGroups"
+        Resource = "*"
+      },
+      {
+        Sid    = "ReadNginxCloudWatchLogs"
+        Effect = "Allow"
+
+        Action = [
+          "logs:DescribeLogStreams",
+          "logs:FilterLogEvents",
+          "logs:GetLogEvents"
+        ]
+
+        Resource = [
+          aws_cloudwatch_log_group.nginx_access.arn,
+          "${aws_cloudwatch_log_group.nginx_access.arn}:*",
+          aws_cloudwatch_log_group.nginx_error.arn,
+          "${aws_cloudwatch_log_group.nginx_error.arn}:*"
+        ]
+      }
+    ]
+  })
+}
+
 # Existing NGINX log groups will be imported into Terraform
 resource "aws_cloudwatch_log_group" "nginx_access" {
   name              = "/ec2/flask-nginx/access"
